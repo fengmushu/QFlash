@@ -34,8 +34,8 @@ CPP_SOURCE:= \
 linux:
 	rm -rf *.o
 	$(CC) -g -c $(C_FLAGS) $(C_SOURCE)
-	$(CPP) -g -c $(C_FLAGS) $(CPP_SOURCE)
-	$(CPP) *.o -lrt -lpthread -o QFlash
+	$(CXX) -g -c $(C_FLAGS) $(CPP_SOURCE)
+	$(CXX) *.o -lrt -lpthread -o QFlash
 
 clean:
 	rm -rf $(NDK_OUT) libs *.o QFlash *~
