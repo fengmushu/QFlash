@@ -72,6 +72,7 @@ struct Action
     const char *prod;
     void *data;
     unsigned size;
+    int fd;
 
     const char *msg;
     int (*func)(Action *a, int status, char *resp);
@@ -133,13 +134,14 @@ void fb_queue_erase(const char *ptn)
     a->msg = mkmsg("erasing '%s'", ptn);
 }
 
-void fb_queue_flash(const char *ptn, void *data, unsigned sz)
+void fb_queue_flash(const char *ptn, void *data, unsigned sz, int fd)
 {
     Action *a;
 
     a = queue_action(OP_DOWNLOAD, "");
     a->data = data;
     a->size = sz;
+    a->fd = fd;
     a->msg = mkmsg("sending '%s' (%d KB)", ptn, sz / 1024);
 
     a = queue_action(OP_COMMAND, "flash:%s", ptn);
@@ -309,6 +311,25 @@ void fb_queue_notice(const char *notice)
     a->data = (void*) notice;
 }
 
+void fb_lqueue_destroy()
+{
+	Action *p = action_list;
+	Action *ptr = 0;
+	while(p !=NULL)
+	{
+		ptr = p;
+		p = p->next;
+		if(ptr->size > 0)
+		{
+			free(ptr->data);
+			ptr->data = 0;
+		}
+		free(ptr);		
+	}
+	action_list = 0;
+	action_last = 0;
+}
+
 int fb_execute_queue(usb_handle *usb)
 {
     Action *a;
@@ -327,7 +348,7 @@ int fb_execute_queue(usb_handle *usb)
             fprintf(stderr,"%s...\n",a->msg);
         }
         if (a->op == OP_DOWNLOAD) {
-            status = fb_download_data(usb, a->data, a->size);
+            status = fb_download_data(usb, a->data, a->size, a->fd);
             status = a->func(a, status, status ? fb_get_error() : "");
             if (status) break;
         } else if (a->op == OP_COMMAND) {

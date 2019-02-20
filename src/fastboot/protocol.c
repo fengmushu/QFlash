@@ -102,7 +102,8 @@ static int check_response(usb_handle *usb, unsigned size,
 
 static int _command_send(usb_handle *usb, const char *cmd,
                          const void *data, unsigned size,
-                         char *response)
+                         char *response,
+                         int fd)
 {
     int cmdsize = strlen(cmd);
     int r;
@@ -116,13 +117,13 @@ static int _command_send(usb_handle *usb, const char *cmd,
         return -1;
     }
 
-    if(usb_write(usb, cmd, cmdsize) != cmdsize) {
+    if(usb_write(usb, cmd, cmdsize, 0) != cmdsize) {
         sprintf(ERROR,"command write failed (%s)", strerror(errno));
         usb_close(usb);
         return -1;
     }
 
-    if(data == 0) {
+    if(data == 0 && fd == 0) {
         return check_response(usb, size, 0, response);
     }
 
@@ -130,10 +131,9 @@ static int _command_send(usb_handle *usb, const char *cmd,
     if(r < 0) {
         return -1;
     }
-    size = r;
-
+    size = r;	
     if(size) {
-        r = usb_write(usb, data, size);
+        r = usb_write(usb, data, size, fd);
         if(r < 0) {
             sprintf(ERROR, "data transfer failure (%s)", strerror(errno));
             usb_close(usb);
@@ -156,21 +156,22 @@ static int _command_send(usb_handle *usb, const char *cmd,
 
 int fb_command(usb_handle *usb, const char *cmd)
 {
-    return _command_send(usb, cmd, 0, 0, 0);
+    return _command_send(usb, cmd, 0, 0, 0, 0);
 }
 
 int fb_command_response(usb_handle *usb, const char *cmd, char *response)
 {
-    return _command_send(usb, cmd, 0, 0, response);
+    return _command_send(usb, cmd, 0, 0, response, 0);
 }
 
-int fb_download_data(usb_handle *usb, const void *data, unsigned size)
+int fb_download_data(usb_handle *usb, const void *data, unsigned size, int fd)
 {
     char cmd[64];
     int r;
     
     sprintf(cmd, "download:%08x", size);
-    r = _command_send(usb, cmd, data, size, 0);
+    //dbg_time("data = %p, size = %d, fd = %d\n", (char*)data, size, fd);
+    r = _command_send(usb, cmd, data, size, 0, fd);
     
     if(r < 0) {
         return -1;

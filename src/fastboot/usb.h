@@ -53,14 +53,17 @@ struct usb_ifc_info
     unsigned char writable;
 
     char serial_number[256];
+    char device_path[256];
 };
+extern int endian_flag;  //check CPU is big or little endian;
+
   
 typedef int (*ifc_match_func)(usb_ifc_info *ifc);
 
 usb_handle *usb_open(ifc_match_func callback);
 int usb_close(usb_handle *h);
 int usb_read(usb_handle *h, void *_data, int len);
-int usb_write(usb_handle *h, const void *_data, int len);
+int usb_write(usb_handle *h, const void *_data, int len, int fd);
 
 
 #endif

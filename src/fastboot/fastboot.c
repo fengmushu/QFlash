@@ -37,8 +37,20 @@
 #include <ctype.h>
 
 #include <sys/time.h>
+#include <sys/sysinfo.h>
 
 #include "fastboot.h"
+
+static char line[1024];
+
+void dbg_time (const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    snprintf(line, sizeof(line), "%s ", /*get_time()*/"");
+    vsnprintf(line + strlen(line), sizeof(line) - strlen(line), fmt, args);
+    fprintf(stdout, "%s\n", line);
+    //fflush(stdout);
+}
 
 char cur_product[FB_RESPONSE_SZ + 1];
 
@@ -48,6 +60,8 @@ static const char *product = 0;
 static const char *cmdline = 0;
 static int wipe_data = 0;
 static unsigned short vendor_id = 0;
+int endian_flag;
+
 
 static unsigned base_addr = 0x10000000;
 
@@ -102,10 +116,28 @@ char *find_item(const char *item, const char *product)
     return strdup(path);
 }
 
+#define RAM_FIXED_VALUE		256
+static int get_total_ram()
+{
+	int err;
+	struct sysinfo s_info = {0};
+	
+	err = sysinfo(&s_info);
+	if(err == 0)
+	{
+		return s_info.totalram >> 20;
+	}else
+	{//default use malloc
+		return RAM_FIXED_VALUE + 50;
+	}
+}
+
+extern int dump;
+
 #ifdef _WIN32
-void *load_file(const char *fn, unsigned *_sz);
+void *load_file(const char *fn, unsigned *_sz, int *out_fd);
 #else
-void *load_file(const char *fn, unsigned *_sz)
+void *load_file(const char *fn, unsigned *_sz, int *out_fd)
 {
     char *data;
     int sz;
@@ -120,7 +152,26 @@ void *load_file(const char *fn, unsigned *_sz)
 
     if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
 
-    data = (char*) malloc(sz);
+#ifdef ANDROID
+	//android platfrom ,use malloc
+	data = (char*) malloc(sz);
+#else
+	//embedded platfrom, first detect total memory, low memory use file desciptor(openwrt)
+	if(RAM_FIXED_VALUE > get_total_ram())
+	{
+		dbg_time("Small memory, use file descriptor.\n");
+		data = 0;
+	}else{		
+    	data = (char*) malloc(sz);
+    }
+#endif
+#if 0	//for test
+	if(data)
+	{
+		free(data);
+		data = 0;
+	}
+#endif
     if(data == 0) goto oops;
 
     if(read(fd, data, sz) != sz) goto oops;
@@ -130,16 +181,25 @@ void *load_file(const char *fn, unsigned *_sz)
     return data;
 
 oops:
-    close(fd);
+	if(data == 0)
+	{// have no enough memory for file
+		*out_fd = fd;
+		if(_sz) *_sz = sz;
+		return 0;
+	}else
+	{
+    	close(fd);
+    }
     if(data != 0) free(data);
     return 0;
 }
 #endif
 
-int match_fastboot(usb_ifc_info *info)
+int match_fastboot_with_serial(usb_ifc_info *info, const char *local_serial)
 {
     if(!(vendor_id && (info->dev_vendor == vendor_id)) &&
        (info->dev_vendor != 0x18d1) &&  // Google
+       (info->dev_vendor != 0x8087) &&  // Intel
        (info->dev_vendor != 0x0451) &&
        (info->dev_vendor != 0x0502) &&
        (info->dev_vendor != 0x0fce) &&  // Sony Ericsson
@@ -147,15 +207,23 @@ int match_fastboot(usb_ifc_info *info)
        (info->dev_vendor != 0x22b8) &&  // Motorola
        (info->dev_vendor != 0x0955) &&  // Nvidia
        (info->dev_vendor != 0x413c) &&  // DELL
+       (info->dev_vendor != 0x2314) &&  // INQ Mobile
+       (info->dev_vendor != 0x0b05) &&  // Asus
        (info->dev_vendor != 0x0bb4))    // HTC
             return -1;
     if(info->ifc_class != 0xff) return -1;
     if(info->ifc_subclass != 0x42) return -1;
     if(info->ifc_protocol != 0x03) return -1;
-    // require matching serial number if a serial number is specified
+    // require matching serial number or device path if requested
     // at the command line with the -s option.
-    if (serial && strcmp(serial, info->serial_number) != 0) return -1;
+    if (local_serial && (strcmp(local_serial, info->serial_number) != 0 &&
+                   strcmp(local_serial, info->device_path) != 0)) return -1;
     return 0;
+}
+
+int match_fastboot(usb_ifc_info *info)
+{
+    return match_fastboot_with_serial(info, serial);
 }
 
 int list_devices_callback(usb_ifc_info *info)
@@ -169,11 +237,12 @@ int list_devices_callback(usb_ifc_info *info)
             serial = "????????????";
         }
         // output compatible with "adb devices"
-        printf("%s\tfastboot\n", serial);
+        dbg_time("%s\tfastboot\n", serial);
     }
 
     return -1;
 }
+extern usb_handle *usb_open(ifc_match_func callback);
 
 usb_handle *open_device(void)
 {
@@ -187,7 +256,8 @@ usb_handle *open_device(void)
         if(usb) return usb;
         if(announce) {
             announce = 0;
-            fprintf(stderr,"< waiting for device >\n");
+            //fprintf(stderr,"< waiting for device >\n");
+            return NULL;
         }
         sleep(1);
     }
@@ -349,6 +419,16 @@ int do_oem_command(int argc, char **argv)
     fb_queue_command(command,"");
     return 0;
 }
+int checkCPU()
+{
+	short int test = 0x1234;
+	if(*((char *)&test)==0x12)
+	{
+		return 1;
+	}
+	return 0;
+}
+
 
 #ifdef USE_FASTBOOT
 int fastboot_main(int argc, char **argv)
@@ -363,10 +443,14 @@ int main(int argc, char **argv)
     unsigned sz;
     unsigned page_size = 2048;
     int status;
+    int fd;
 
-	//int i;
-	//for (i = 0; i < argc; i++)
-	//	printf("argv[%d] = %s\n", i, argv[i]);
+    /******************check the CPU is Big endian**************************************************/
+	if(checkCPU())
+	{
+		endian_flag = 1;
+
+	}
 
     skip(1);
     if (argc == 0) {
@@ -432,7 +516,7 @@ int main(int argc, char **argv)
             skip(2);
         } else if(!strcmp(*argv, "signature")) {
             require(2);
-            data = load_file(argv[1], &sz);
+            data = load_file(argv[1], &sz, 0);
             if (data == 0) die("could not load '%s'", argv[1]);
             if (sz != 256) die("signature must be 256 bytes");
             fb_queue_download("signature", data, sz);
@@ -459,9 +543,10 @@ int main(int argc, char **argv)
                 skip(2);
             }
             if (fname == 0) die("cannot determine image filename for '%s'", pname);
-            data = load_file(fname, &sz);
-            if (data == 0) die("cannot load '%s'\n", fname);
-            fb_queue_flash(pname, data, sz);
+            fd = 0;
+            data = load_file(fname, &sz, &fd);
+            if (data == 0 && fd == 0) die("cannot load '%s'\n", fname);
+            fb_queue_flash(pname, data, sz, fd);
         } else if(!strcmp(*argv, "oem")) {
             argc = do_oem_command(argc, argv);
         } else {
@@ -481,7 +566,12 @@ int main(int argc, char **argv)
     }
 
     usb = open_device();
+    if(NULL == usb)
+    {
+    	die("cannot open device");
+    }
 
     status = fb_execute_queue(usb);
+    fb_lqueue_destroy();
     return (status) ? 1 : 0;
 }
