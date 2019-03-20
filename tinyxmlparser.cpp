@@ -33,7 +33,7 @@ distribution.
 #		include <windows.h>
 #		define TIXML_LOG OutputDebugString
 #	else
-#		define TIXML_LOG dbg_time
+#		define TIXML_LOG printf
 #	endif
 #endif
 

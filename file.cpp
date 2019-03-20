@@ -95,7 +95,7 @@ static int check_file_md5_value(char* filename, std::vector<md5_item>& md5_vec)
 	memset(md5_hex, 0, 16);
 	if(-1 == md5sum((char*)filename, md5_hex))
 	{
-		dbg_time("calclate %s md5 failed.\n", filename);
+		printf("calclate %s md5 failed.\n", filename);
 		return -1;
 	}
 
@@ -106,11 +106,11 @@ static int check_file_md5_value(char* filename, std::vector<md5_item>& md5_vec)
     	md5_hex[12],md5_hex[13],md5_hex[14],md5_hex[15]);
     if(lookup_item(md5_vec, filename,  md5_str) == 0)
     {
-    	dbg_time("md5 checking: %s pass\n", filename);
+    	printf("md5 checking: %s pass\n", filename);
     	return 0;
     }else
     {
-    	dbg_time("md5 examine: %s fail\n", filename);
+    	printf("md5 examine: %s fail\n", filename);
     }
     return 1;
 }
@@ -252,47 +252,6 @@ int retrieve_nrpg_enrpg_filename(const char* path, char** nrpg_filename, char **
 	return 1;
 }
 
-int retrieve_filename(download_context *ctx, char* path)
-{
-	struct dirent *de;
-	DIR *busdir;
-	char *filename = NULL;
-	
-	busdir = opendir(path);
-	if(busdir == 0) 
-		return 0;
-	while((de = readdir(busdir)))
-	{			
-		if(strstr(de->d_name, "patch") != NULL)
-		{
-			asprintf(&ctx->patch_xml, "%s/%s", path, de->d_name);
-		}else if(strstr(de->d_name, "partition") != NULL)
-		{
-			asprintf(&ctx->partition_complete_mbn, "%s/%s", path, de->d_name);			
-		}else if(strstr(de->d_name, "raw") != NULL)
-		{
-			asprintf(&ctx->rawprogram_nand_update_xml, "%s/%s", path, de->d_name);
-		}else if(strstr(de->d_name, "prog") != NULL)
-		{
-			asprintf(&ctx->prog_nand_firehose_mbn, "%s/%s", path, de->d_name);
-		}else
-		{
-			//hello
-		}		
-	}
-	closedir(busdir);
-	if(	access(ctx->patch_xml, F_OK) != 0 || 
-		access(ctx->partition_complete_mbn, F_OK) != 0 || 
-		access(ctx->rawprogram_nand_update_xml, F_OK) != 0 || 
-		access(ctx->prog_nand_firehose_mbn, F_OK) != 0)
-	{
-		dbg_time("firehose files can't access.\n");
-		return -1;
-	}
-	dbg_time("firehose files check pass\n");
-	return 0;
-}
-
 int image_read(download_context *ctx) {
    
 	//find contents.xml
@@ -306,7 +265,6 @@ int image_read(download_context *ctx) {
 	TiXmlElement *pNode = NULL;
 	char* partition_nand_path = NULL;
 	long long all_files_bytes = 0;
-	char temp[256 + 1] ={0};
 	vector<Ufile>::iterator iter; 
 	int md5ret;
 	char* md5_file_path = NULL;
@@ -320,14 +278,14 @@ int image_read(download_context *ctx) {
 	//check md5 file whether exist
 	if( (md5_file_path = retrieve_md5_filename(ctx->firmware_path)) != 0)
 	{
-		dbg_time("Detect %s file.\n", md5_file_path);
+		printf("Detect %s file.\n", md5_file_path);
 		//get md5 and filename pair
 		if(parse_md5_file(md5_file_path, md5_vec) != 0)
 		{
-			dbg_time("Warnning: md5 file format error, ignore md5 check\n");
+			printf("Warnning: md5 file format error, ignore md5 check\n");
 			//return 0;
 		}else{
-			dbg_time("md5 checking enable.\n");
+			printf("md5 checking enable.\n");
 			ctx->md5_check_enable = 1;
 		}
 	}else{
@@ -494,7 +452,7 @@ int image_read(download_context *ctx) {
 	ctx->platform = get_module_platform(ctx->NPRG_path);
 	if(ctx->platform == platform_unknown)
 	{
-		QFLASH_LOGD("error:	cann't detect firmware platfrom!\n");
+		QFLASH_LOGD("error:	cann't detect firmware platfrom!");
 		ret = -1;
 		goto __exit_image_read;
 	}
@@ -509,22 +467,7 @@ int image_read(download_context *ctx) {
 			goto __exit_image_read;
 		}		
 	}
-	{
-		asprintf(&ctx->firehose_path, "%s/%s", ctx->firmware_path, "firehose");
-		if(access(ctx->firehose_path, F_OK) != 0)
-		{
-			dbg_time("firehose direcotry missing, firehose upgarde not supported\n");
-		}else
-		{
-			dbg_time("find firehose directory!\n");
-			ctx->firehose_support = 1;
-		}
-		if(ctx->firehose_support == 1 && retrieve_filename(ctx, ctx->firehose_path) != 0)
-		{
-			ret = 0;
-			goto __exit_image_read;
-		}
-	}
+
 	ret = 1;
 __exit_image_read:	
 	if(pDocNode != NULL)			delete pDocNode;

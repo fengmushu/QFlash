@@ -41,17 +41,6 @@
 
 #include "fastboot.h"
 
-static char line[1024];
-
-void dbg_time (const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    snprintf(line, sizeof(line), "%s ", /*get_time()*/"");
-    vsnprintf(line + strlen(line), sizeof(line) - strlen(line), fmt, args);
-    fprintf(stdout, "%s\n", line);
-    //fflush(stdout);
-}
-
 char cur_product[FB_RESPONSE_SZ + 1];
 
 static usb_handle *usb = 0;
@@ -159,7 +148,7 @@ void *load_file(const char *fn, unsigned *_sz, int *out_fd)
 	//embedded platfrom, first detect total memory, low memory use file desciptor(openwrt)
 	if(RAM_FIXED_VALUE > get_total_ram())
 	{
-		dbg_time("Small memory, use file descriptor.\n");
+		printf("Small memory, use file descriptor.\n");
 		data = 0;
 	}else{		
     	data = (char*) malloc(sz);
@@ -237,12 +226,11 @@ int list_devices_callback(usb_ifc_info *info)
             serial = "????????????";
         }
         // output compatible with "adb devices"
-        dbg_time("%s\tfastboot\n", serial);
+        printf("%s\tfastboot\n", serial);
     }
 
     return -1;
 }
-extern usb_handle *usb_open(ifc_match_func callback);
 
 usb_handle *open_device(void)
 {

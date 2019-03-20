@@ -36,12 +36,12 @@ static int send_tmp_length = 0;
 
 void dump_buffer(unsigned char * buff, int len)
 {
-	dbg_time("dump buffer: %d bytes\n", len);
+	printf("dump buffer: %d bytes\n", len);
 	for(int i = 0; i < len; i++)
 	{
-		dbg_time("%02x ", buff[i]);
+		printf("%02x ", buff[i]);
 	}
-	dbg_time("\nend\n");
+	printf("\nend\n");
 	
 }
 void  compute_reply_crc ()
@@ -176,7 +176,7 @@ int receive_packet(void)
 		if(bytesread == 0)
 		{
 			//timeout may be error
-			dbg_time("%s timeout\n", __FUNCTION__);
+			printf("%s timeout\n", __FUNCTION__);
 			return 0;
 		}
 		//dump_buffer(&buff[idx], bytesread);
@@ -200,7 +200,7 @@ int receive_packet(void)
 
 static void handle_sahara_protocol(unsigned char *rx_buff, target_current_state* state_)
 {
-	sahara_header_t* header = (sahara_header_t*)rx_buff;
+	sahara_header* header = (sahara_header*)rx_buff;
 	boot_sahara_cmd_id id = (boot_sahara_cmd_id)header->Command;
 	switch(id)
 	{
@@ -221,7 +221,7 @@ static void handle_sahara_protocol(unsigned char *rx_buff, target_current_state*
 			break;
 		case SAHARA_END_IMAGE_TX_ID:
 			{
-				end_of_image_transfer_packet_t* ptr = (end_of_image_transfer_packet_t*)rx_buff;
+				end_of_image_transfer_packet* ptr = (end_of_image_transfer_packet*)rx_buff;
 				QFLASH_LOGD("Sahara Command = SAHARA_END_IMAGE_TX_ID\n");
 				QFLASH_LOGD("end_of_image_transfer_packet->Command = %d\n", ptr->Command);
 				QFLASH_LOGD("end_of_image_transfer_packet->Length = %d\n", ptr->Length);
@@ -296,7 +296,7 @@ int ignore_dirty_data()
 	ret = ReadABuffer(g_hCom, rxbuff,sizeof(rxbuff));
 	if(ret > 0)
 	{
-		dbg_time("clear dirty data in rx buffer\n");
+		printf("clear dirty data in rx buffer\n");
 		return 0;
 	}
 	return 1;
@@ -321,7 +321,7 @@ target_current_state send_sync(void)
     wl = WriteABuffer(g_hCom, (unsigned char *)noppkt, sizeof(noppkt));
     if(wl == 0)
     {
-        dbg_time("send_sync write failed\n");
+        printf("send_sync write failed\n");
         return result;
     }
     qdl_sleep(500);
@@ -329,30 +329,30 @@ target_current_state send_sync(void)
     rl = ReadABuffer(g_hCom, pBuf,sizeof(pBuf));
     if(rl < 0)
     {
-        dbg_time("send_sync read failed\n");
+        printf("send_sync read failed\n");
         return result;
     }
     if(rl == 0)
     {
-    	dbg_time("send_sync read nothing\n");
+    	printf("send_sync read nothing\n");
     	return STATE_UNSPECIFIED;
     }
 
     if(!memcmp(pBuf, tpkt, sizeof(tpkt)))
     {
         result = STATE_DLOAD_MODE;
-        dbg_time("The module in download mode\n");
+        printf("The module in download mode\n");
     }    
     else if(!memcmp(pBuf, fpkt, sizeof(fpkt)))
     {
         result = STATE_NORMAL_MODE;
-        dbg_time("The module in normal mode\n");
+        printf("The module in normal mode\n");
     }    
     else if(!memcmp(pBuf, ipkt, sizeof(ipkt)) ||
     		!memcmp(pBuf, fpkt2, sizeof(fpkt2)))
     {
         result = STATE_GOING_MODE;
-        dbg_time("The module in go mode\n");
+        printf("The module in go mode\n");
     }        
     else
     {
@@ -360,7 +360,7 @@ target_current_state send_sync(void)
     	handle_sahara_protocol(pBuf, &result);  
     	if(result == STATE_SAHARA_MODE)
 		{
-			dbg_time("The module in sahara mode\n");
+			printf("The module in sahara mode\n");
 		}
     	
     }
@@ -424,7 +424,7 @@ int handle_hello(void)
             }
         }
         else if(err == -1){
-        	dbg_time("error = %d, strerr = %s\n", errno, strerror(errno));
+        	printf("error = %d, strerr = %s\n", errno, strerror(errno));
             return 0;
         }
         timeout--;
@@ -484,7 +484,7 @@ int handle_quectel_download_flag(byte mode) {
 						}
 					break;
 				case 0x0E:
-					dbg_time("Invalid command");
+					printf("Invalid command");
 					return 2;
 				default:
 					dump_buffer(g_Receive_Buffer, 64);
@@ -631,18 +631,18 @@ void pkt_write_multi_image(uint32 addr, unsigned char*data, uint16 size) {
 int handle_write(FILE *fp,  unsigned char *data, uint32 size)
 {    
     uint32 total_size;
-    uint32 addr = 0;
+    uint32 addr=0;
     uint32 writesize;
     uint32 buffer_size = QdlContext->cache;
     int loop = 1;
-    int retry_cnt = 3;  //if send failed,send again
+    int retry_cnt=3;  //if send failed,send again
     int ret;
 
     total_size = size;
     while(size)
     {
-        writesize = (size < buffer_size) ? size : buffer_size;
-        if(fp != NULL){
+        writesize=(size < buffer_size) ? size : buffer_size;
+        if(fp!=NULL){
             fread((void *)data, 1, writesize, fp);
         }
         pkt_write_multi_image(addr, data, writesize);
@@ -680,8 +680,8 @@ retry_send_packet:
                 goto start_send_packet;
             }
             else
-            {
-                dbg_time( "value is [0x%02x]",g_Receive_Buffer[0]);
+             {
+                printf( "value is [0x%02x]",g_Receive_Buffer[0]);
                 return 0;
             }
         }
@@ -729,7 +729,7 @@ int ReadSAHARABuffer(int file, unsigned char * lpBuf, int dwToRead)
 	int rSize;
 	while(1)
 	{ 
-		rSize = ReadABuffer(file, lpBuf, dwToRead);
+		rSize=ReadABuffer(file, lpBuf, dwToRead);
 		if(rSize > 0)
 			return rSize;
 		else
@@ -780,17 +780,17 @@ int get_sahara_hello_packet()
 	{
 		return 0;
 	}
-	dbg_time( "Command is [0x%02x],length is [0x%02x]",Command,length);
+	printf( "Command is [0x%02x],length is [0x%02x]",Command,length);
 	return 1;
 #else
 	int ret = 0;
-	sahara_header_t* header = 0;
+	sahara_header* header = 0;
 	boot_sahara_cmd_id id = SAHARA_MAX_CMD_ID;
 	unsigned char rx_buff[128];
 	ret = ReadABuffer(g_hCom, rx_buff,sizeof(rx_buff));
-	if(ret > sizeof(sahara_header_t))
+	if(ret > sizeof(sahara_header))
 	{
-		header = (sahara_header_t*)rx_buff;
+		header = (sahara_header*)rx_buff;
 		id = (boot_sahara_cmd_id)header->Command;
 		if(SAHARA_HELLO_ID == id)
 		{
@@ -821,7 +821,57 @@ int SendHelloPacketTest(int emergency_mode)
 	return SendHelloPacket();
 }
 
-
+int send_sahara_hello_response_packet()
+{
+	unsigned CommandID=htonl(HELLO_RESPONSE_PACKET);
+	unsigned Length=htonl(HELLO_RESPONSE_PACKET_LENGTH);
+	unsigned VersionN=htonl(SHARA_PROCTOL_VERSON_NUM);
+	unsigned VersionC=htonl(LOW_COMP_VERSON_NUM);
+	unsigned State=htonl(SUCESS_OR_ERROR_STATE);
+  	if(endian_flag)
+    {
+        CommandID=0x02000000;
+        Length=0x30000000;
+        VersionN=0x02000000;
+        VersionC=0x01000000;
+        State=0x00000000;
+    }
+	unsigned char SendBuffer[48]={0};
+	int index=0;
+	SendBuffer[index++]=(CommandID>>24)&0xff;
+	SendBuffer[index++]=(CommandID>>16)&0xff;
+	SendBuffer[index++]=(CommandID>>8)&0xff;
+	SendBuffer[index++]=(CommandID)&0xff;
+	
+	SendBuffer[index++]=(Length>>24)&0xff;
+	SendBuffer[index++]=(Length>>16)&0xff;
+	SendBuffer[index++]=(Length>>8)&0xff;
+	SendBuffer[index++]=(Length)&0xff;
+	
+		
+	SendBuffer[index++]=(VersionN>>24)&0xff;
+	SendBuffer[index++]=(VersionN>>16)&0xff;
+	SendBuffer[index++]=(VersionN>>8)&0xff;
+	SendBuffer[index++]=(VersionN)&0xff;
+	
+		
+	SendBuffer[index++]=(VersionC>>24)&0xff;
+	SendBuffer[index++]=(VersionC>>16)&0xff;
+	SendBuffer[index++]=(VersionC>>8)&0xff;
+	SendBuffer[index++]=(VersionC)&0xff;
+	
+		
+	SendBuffer[index++]=(State>>24)&0xff;
+	SendBuffer[index++]=(State>>16)&0xff;
+	SendBuffer[index++]=(State>>8)&0xff;
+	SendBuffer[index++]=(State)&0xff;
+	qdl_flush_fifo(g_hCom, 1, 1,1);	
+    if(WriteABuffer(g_hCom, SendBuffer,48 ) == 48)
+	{
+		return 0;
+	}
+	return 1;
+}
 int SendHelloPacket()
 {
 	unsigned CommandID=htonl(HELLO_RESPONSE_PACKET);
@@ -874,8 +924,138 @@ int SendHelloPacket()
 	return 1;
 }
 
+int transfer_nrpg_or_enpgr_file()
+{
+	unsigned char *Data = NULL;
+	unsigned char *tmp = NULL;
+	unsigned filesize;
+	int i = 0;
+	int loadfile = 0;
+	int need_free_memory = 0;
+	int ret = 0;
+	while(1)
+	{
+		
+		unsigned char RecvCommand[4]={0};
+		int size=ReadSAHARABuffer(g_hCom, RecvCommand, 4);
+		unsigned Command=(RecvCommand[3]<<24)|(RecvCommand[2]<<16)|(RecvCommand[1]<<8)|RecvCommand[0];
+		if(Command == GET_DATA_PACKET)
+		{
+			unsigned char RecvData[16]={0};
+			unsigned offset;
+			unsigned length;
+			unsigned type;
 
-int GetReadDataPacket(int *emergency_mode, int max_pkt_sz)
+			read_data_packet* ptr = (read_data_packet*)(RecvCommand);
+			//get data offset & data length
+			if(ReadSAHARABuffer(g_hCom, RecvData,16) != 16)
+			{
+				printf("sahara read bytes invalid\n");
+				ret = 1;
+				break;
+			}
+			type=(RecvData[7]<<24)|(RecvData[6]<<16)|(RecvData[5]<<8)|RecvData[4];
+			
+			if(loadfile == 0)
+			{
+				if(type==0x00000007)
+				{
+					Data= open_file(QdlContext->NPRG_path, &filesize);
+					QFLASH_LOGD("Sahara send %s\n", QdlContext->NPRG_path);
+					need_free_memory = 1;
+				}
+				else if(type==0x0000000D)
+				{
+					Data= open_file(QdlContext->ENPRG_path, &filesize);
+					QFLASH_LOGD("Sahara send %s\n", QdlContext->ENPRG_path);
+					need_free_memory = 1;
+				}
+				else
+				{
+					printf("unknown sahara id : %d\n", type);
+					ret = 2;
+					break;
+				}				
+				loadfile = 1;
+				tmp = Data;
+			}
+			offset=(RecvData[11]<<24)|(RecvData[10]<<16)|(RecvData[9]<<8)|RecvData[8];
+			length=(RecvData[15]<<24)|(RecvData[14]<<16)|(RecvData[13]<<8)|RecvData[12];
+			Data = tmp;
+			//read file(offset length),and send content
+			Data += offset;
+			i = offset+length;
+			qdl_flush_fifo(g_hCom, 1, 1,0); //flush no finish data
+			int size = length;
+			if(length > 1024)
+			{
+				while(size != 0)
+				{
+					int writesize = (size<1024)?size:1024;
+					if(WriteABuffer(g_hCom, Data,writesize )!=writesize)
+					{
+						printf("write sahara packet failed\n");
+						ret = 3;
+						break;
+					}					
+					size -= writesize;
+					Data += writesize;
+					//usleep(5);
+				}
+				
+			}
+			else
+			{
+				if(WriteABuffer(g_hCom, Data,length ) != length)
+				{
+					ret = 4;
+					break;
+				}
+				
+			}
+		}
+		else if(Command==END_IMAGE_TRNSER_PACKET)
+		{
+			unsigned char RecvData[12]={0};
+			if(ReadSAHARABuffer(g_hCom, RecvData,12)!=12)
+			{
+				ret = 5;
+				break;
+			}
+			unsigned state=(RecvData[11]<<24)|(RecvData[10]<<16)|(RecvData[9]<<8)|RecvData[8];
+			if(state == 0x00000000)
+			{	
+				//transfer file success.
+				ret = 0;
+				break;
+			}
+			else
+			{
+				ret = 6;
+				break;
+			}
+		}
+		else if(Command==GET_HELLO_PACKET)
+		{
+			ret = 7;
+			break;
+		}
+		else
+		{
+			QFLASH_LOGD("Can't read the data\r\n");
+			ret = 8;
+			break;
+		}
+			
+	}
+
+	if(need_free_memory)
+	{
+		free(tmp);
+	}
+	return ret;
+}
+int GetReadDataPacket(int *emergency_mode)
 {
 	unsigned char *Data = NULL;
 	unsigned char *tmp = NULL;
@@ -905,7 +1085,7 @@ int GetReadDataPacket(int *emergency_mode, int max_pkt_sz)
 			unsigned length;
 			unsigned type;
 
-			read_data_packet_t* ptr = (read_data_packet_t*)(RecvCommand);
+			read_data_packet* ptr = (read_data_packet*)(RecvCommand);
 			//get data offset & data length
 			if(ReadSAHARABuffer(g_hCom, RecvData,16) != 16)
 				return 0;
@@ -940,12 +1120,12 @@ int GetReadDataPacket(int *emergency_mode, int max_pkt_sz)
 			i = offset + length;
 			qdl_flush_fifo(g_hCom, 1, 1,0); //flush no finish data
 			int size = length;
-//#define PKT_SIZE			(1024 * 1)
-			if(length > max_pkt_sz)
+#define PKT_SIZE			(1024 * 4)
+			if(length > PKT_SIZE)
 			{
 				while(size != 0)
 				{
-					int writesize = (size < max_pkt_sz) ? size : max_pkt_sz;
+					int writesize = (size < PKT_SIZE)?size : PKT_SIZE;
 					if(WriteABuffer(g_hCom, Data,writesize ) != writesize)
 					{
 						QFLASH_LOGD("-------------error-----------------\n");
@@ -1127,8 +1307,6 @@ int sahara_done()
 	}
 	return 0;
 }
-//extern int need_check_fw_version;
-//extern char current_fw_version[];
 
 int retrieve_soft_revision()
 {
@@ -1151,323 +1329,10 @@ int retrieve_soft_revision()
 		{
 			QFLASH_LOGD("\n");
 			QFLASH_LOGD("Software Revision = %s\n", &ptr->mobile_software_revision[0]);
-			//need_check_fw_version = 1;
-			//memset(current_fw_version, 0, 256);
-			//strcpy(current_fw_version, (char*)&ptr->mobile_software_revision[0]);
-			//QFLASH_LOGD("check fw version...\n");
 			return 0;
 		}
 	}
 	return 0;
 }
-
-
-int switch_emergency_download()
-{
-	int ret;
-	unsigned char tx[] = {0x4b, 0x65, 0x01, 0x00, 0x54, 0x0f, 0x7e};
-	unsigned char rxbuff[128] = {0};
-	int try_times = 0;
-
-try_again:
-	memset(rxbuff, 0, 128);
-	ret = WriteABuffer(g_hCom, (unsigned char *)tx, sizeof(tx));
-    if(ret == 0)
-    {
-        dbg_time("switch_emergency_download write failed\n");
-        return -1;
-    }   
-    ret = ReadABuffer(g_hCom, rxbuff,sizeof(rxbuff));
-    if(ret < 0)
-    {
-        dbg_time("send_sync read failed, but may be not a error!\n");
-        return -1;
-    }
-    if((rxbuff[0] == 0x13) || strncmp((char*)rxbuff, (char*)tx, sizeof(tx)) != 0)
-    {
-    	try_times++;
-    	if(try_times > 10)	return 1;
-    	goto try_again;
-    }
-    
-	return 0;
-}
-
-int send_sahara_hello_response_packet()
-{
-	unsigned CommandID=htonl(HELLO_RESPONSE_PACKET);
-	unsigned Length=htonl(HELLO_RESPONSE_PACKET_LENGTH);
-	unsigned VersionN=htonl(SHARA_PROCTOL_VERSON_NUM);
-	unsigned VersionC=htonl(LOW_COMP_VERSON_NUM);
-	unsigned State=htonl(SUCESS_OR_ERROR_STATE);
-  	if(endian_flag)
-    {
-        CommandID=0x02000000;
-        Length=0x30000000;
-        VersionN=0x02000000;
-        VersionC=0x01000000;
-        State=0x00000000;
-    }
-	unsigned char SendBuffer[48]={0};
-	int index=0;
-	SendBuffer[index++]=(CommandID>>24)&0xff;
-	SendBuffer[index++]=(CommandID>>16)&0xff;
-	SendBuffer[index++]=(CommandID>>8)&0xff;
-	SendBuffer[index++]=(CommandID)&0xff;
-	
-	SendBuffer[index++]=(Length>>24)&0xff;
-	SendBuffer[index++]=(Length>>16)&0xff;
-	SendBuffer[index++]=(Length>>8)&0xff;
-	SendBuffer[index++]=(Length)&0xff;
-	
-		
-	SendBuffer[index++]=(VersionN>>24)&0xff;
-	SendBuffer[index++]=(VersionN>>16)&0xff;
-	SendBuffer[index++]=(VersionN>>8)&0xff;
-	SendBuffer[index++]=(VersionN)&0xff;
-	
-		
-	SendBuffer[index++]=(VersionC>>24)&0xff;
-	SendBuffer[index++]=(VersionC>>16)&0xff;
-	SendBuffer[index++]=(VersionC>>8)&0xff;
-	SendBuffer[index++]=(VersionC)&0xff;
-	
-		
-	SendBuffer[index++]=(State>>24)&0xff;
-	SendBuffer[index++]=(State>>16)&0xff;
-	SendBuffer[index++]=(State>>8)&0xff;
-	SendBuffer[index++]=(State)&0xff;
-	qdl_flush_fifo(g_hCom, 1, 1,1);	
-    if(WriteABuffer(g_hCom, SendBuffer,48 ) == 48)
-	{
-		return 0;
-	}
-	return 1;
-}
-int transfer_prog_nand_firehose_file(char * filename)
-{
-	unsigned char rxbuff[128] = {0};
-	int timeout = 0;
-	sahara_header_t *sahara_header_ptr;
-	uint32 Command;
-	unsigned int loadfile = 0;
-	uint32 want_to_write, type, length;
-	read_data_packet_t* read_data_pkt_ptr;
-	end_of_image_transfer_packet_t* end_of_image_ptr;
-	unsigned char* data = NULL;
-	uint32 filesize;
-	int ret = 0;
-#define WRITE_LENGTH	(1024 * 4)
-	data = open_file(filename, &filesize);
-	if(data == NULL)
-	{
-		return -2;
-	}
-	while(1)
-	{
-		memset(rxbuff, 0, sizeof(rxbuff));
-		int sz = ReadSAHARABuffer(g_hCom, rxbuff, sizeof(rxbuff));
-		if(sz == 0)
-		{
-			ret = -1; goto _exit;
-		}
-		sahara_header_ptr = (sahara_header_t*)rxbuff;
-		Command = sahara_header_ptr->Command;
-		switch(Command)
-		{
-			case GET_DATA_PACKET:
-				{
-					read_data_pkt_ptr = (read_data_packet_t*)rxbuff;
-					length = read_data_pkt_ptr->DataLength;
-					if(WriteABuffer(g_hCom, data + read_data_pkt_ptr->DataOffset, length ) != length)
-					{
-						ret = -1;
-						goto _exit;
-					}
-					
-				}
-				break;
-			case END_IMAGE_TRNSER_PACKET:
-				{
-					end_of_image_ptr = (end_of_image_transfer_packet_t*)rxbuff;
-					if( end_of_image_ptr->Status == 0)
-					{
-						ret = 0;
-						goto _exit;
-					}
-				}
-				break;
-			case GET_HELLO_PACKET:
-				{
-					dbg_time("may be error!, get hello packet!\n");
-				}
-				break;
-			default:
-				{
-					dbg_time("unknown command.\n");
-				}
-				break;
-		}
-		
-		
-	}
-_exit:
-	if(data)
-	{
-		free(data);
-		data = NULL;
-	}
-	return ret;
-}
-
-int transfer_prog_nand_firehose_file1(char *filename)
-{
-	unsigned char *Data = NULL;
-	unsigned char *tmp = NULL;
-	unsigned filesize;
-	int i = 0;
-	int flag = 0;
-	int need_free = 0;
-	while(1)
-	{
-		
-		//Get read data packet
-		unsigned char RecvCommand[4]={0};
-		int size = ReadSAHARABuffer(g_hCom, RecvCommand, 4);
-		if(size != 4)
-		{
-			if(need_free)
-			{
-				free(tmp);
-			}
-			return 0;
-		}
-		unsigned Command = (RecvCommand[3] << 24)|(RecvCommand[2] << 16)|(RecvCommand[1] << 8)|RecvCommand[0];
-		if(Command == GET_DATA_PACKET)
-		{
-			unsigned char RecvData[16]={0};
-			unsigned offset;
-			unsigned length;
-			unsigned type;
-
-			read_data_packet_t* ptr = (read_data_packet_t*)(RecvCommand);
-			//get data offset & data length
-			if(ReadSAHARABuffer(g_hCom, RecvData,16) != 16)
-				return 0;
-			type = (RecvData[7]<<24)|(RecvData[6]<<16)|(RecvData[5]<<8)|RecvData[4];
-			
-			if(flag == 0)
-			{
-				if(type == 0x00000007)
-				{
-					Data= open_file(filename, &filesize);
-					QFLASH_LOGD("Sahara send %s\n", QdlContext->NPRG_path);
-					need_free = 1;
-				}
-				else if(type == 0x0000000D)
-				{
-					Data= open_file(filename, &filesize);
-					QFLASH_LOGD("Sahara send %s\n", QdlContext->ENPRG_path);
-					need_free = 1;
-				}
-				else
-					return 0;
-				
-				flag = 1;
-				tmp = Data;
-			}
-			offset=(RecvData[11]<<24)|(RecvData[10]<<16)|(RecvData[9]<<8)|RecvData[8];
-			length=(RecvData[15]<<24)|(RecvData[14]<<16)|(RecvData[13]<<8)|RecvData[12];
-			dbg_time("want to write %d bytes\n", length);
-			Data = tmp;
-			//read file(offset length),and send content
-			Data += offset;
-			i = offset + length;
-			qdl_flush_fifo(g_hCom, 1, 1,0); //flush no finish data
-			int size = length;
-#define PKT_SIZE			(1024 * 4)
-			if(length > PKT_SIZE)
-			{
-				while(size != 0)
-				{
-					int writesize = (size < PKT_SIZE)?size : PKT_SIZE;
-					if(WriteABuffer(g_hCom, Data,writesize ) != writesize)
-					{
-						QFLASH_LOGD("-------------error-----------------\n");
-						return 0;
-					}
-					
-					size -= writesize;
-					Data += writesize;
-					//usleep(5);
-				}
-				
-			}
-			else
-			{
-				if(WriteABuffer(g_hCom, Data,length ) != length)
-				{
-					if(need_free)
-					{
-						free(tmp);
-					}
-					return 0;
-				}
-				
-			}
-			QdlContext->process_cb(i, filesize,0);
-		}
-		else if(Command==END_IMAGE_TRNSER_PACKET)
-		{
-			unsigned char RecvData[12] = {0};
-			if(ReadSAHARABuffer(g_hCom, RecvData,12) != 12)
-			{
-				if(need_free)
-				{
-					free(tmp);
-				}
-				return 0;
-			}
-			unsigned state = (RecvData[11]<<24)|(RecvData[10]<<16)|(RecvData[9]<<8)|RecvData[8];
-			if(state == 0x00000000)
-			{
-				break;
-			}
-			else
-			{
-				if(need_free)
-				{
-					free(tmp);
-				}
-				return 0;
-			}
-		}
-		else if(Command == GET_HELLO_PACKET)
-		{
-			if(need_free)
-			{
-				free(tmp);
-			}
-			return 2;
-		}
-		else
-		{
-			QFLASH_LOGD("Can't read the data\r\n");
-			if(need_free)
-			{
-				free(tmp);
-			}
-			return 0;
-		}
-			
-	}
-
-	if(need_free)
-	{
-		free(tmp);
-	}
-	return 1;
-}
-
 
 

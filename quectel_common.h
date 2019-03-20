@@ -15,14 +15,11 @@ enum module_platform_t
 	platform_9x06 = 0,
 	platform_9x07,
 	platform_9x45,
-	platform_9x65,
 	platform_unknown
 };
 
 
 module_platform_t get_module_platform(const char* nprg_filename);
-int get_product_model(char ** product_model);
-
 int q_port_detect(char** pp_diag_port, int interface);
 int checkCPU();
 int probe_quectel_speed(enum usb_speed* speed);

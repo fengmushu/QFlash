@@ -69,8 +69,7 @@
 #ifndef MKDEV
 #define MKDEV(ma,mi) ((ma)<<8 | (mi))
 #endif
-typedef  unsigned short    U16;
-extern void dbg_time (const char *fmt, ...);
+typedef  unsigned short    U16;  
 
 /* The max bulk size for linux is 16384 which is defined
  * in drivers/usb/core/devio.c.
@@ -559,7 +558,7 @@ int  CreateDir(const   char   *sPathName)
 			{  
 				if(mkdir(DirName,   0755)==-1)  
 				{   
-					dbg_time("mkdir %s\n",DirName);   
+					printf("mkdir %s\n",DirName);   
 					return   -1;   
 				}  
 			}  
@@ -609,7 +608,7 @@ int usb_check()
 						charsplit(desc,devmajor,64,"MAJOR=")==-1||
 						charsplit(desc,devminor,64,"MINOR=")==-1)
 						{
-							dbg_time("[FASTBOOT] Split String Error\n");
+							printf("[FASTBOOT] Split String Error\n");
 							return 0;
 						}
 						memset(buspath,0,128);
@@ -620,16 +619,16 @@ int usb_check()
                        if (access(buspath, R_OK)) {
 							if(CreateDir(buspath)!=0)
 							{
-								dbg_time("[FASTBOOT] Create dir[%s] failed\n",buspath);
+								printf("[FASTBOOT] Create dir[%s] failed\n",buspath);
 								return -1;
 							}
                        }
                                             
 						if (!access(buspath, R_OK) && access(devpath, R_OK)) {												
-                            dbg_time("mknod %s, MAJOR = %s, MINOR =%s\n", devpath, devmajor,devminor);
+                            printf("mknod %s, MAJOR = %s, MINOR =%s\n", devpath, devmajor,devminor);
 							if((0 != mknod(devpath,  S_IFCHR|0666, makedev(atoi(devmajor),atoi(devminor)))))
 							{
-								dbg_time("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
+								printf("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
 								return -1;
 							}
 						}

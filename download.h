@@ -51,13 +51,7 @@ typedef struct {
     target_platform       TargetPlatform;
 
     process_fun_t	process_cb;
-    
-	int firehose_support;
-	char *partition_complete_mbn;
-	char *patch_xml;
-	char *prog_nand_firehose_mbn;
-	char *rawprogram_nand_update_xml;
-	char *firehose_path;
+
     int update_method; 
     int cache;
     int md5_check_enable;
@@ -72,7 +66,6 @@ typedef struct {
 	vector<Ufile> ufile_list;
 
 	module_platform_t	platform;
-	char* prodct_model;
 }download_context, *p_download_context;
 
 extern download_context *QdlContext;
@@ -89,6 +82,6 @@ void Processing(download_context *pQdlContext);
 void free_ufile(Ufile);
 void Resolve_port(char *chPort,int* nPort );
 
-int process_firehose_upgrade(download_context* ctx_ptr);
+
 #define DETECT_DEV_TIMEOUT				30
 #endif /*__DOWNLOAD_H__*/

@@ -45,7 +45,7 @@ typedef struct{
 	uint32 Length;
 	uint32 ImageID;
 	uint32 Status;
-}__attribute__((packed))end_of_image_transfer_packet_t;
+}__attribute__((packed))end_of_image_transfer_packet;
 
 typedef struct{
 	uint32 Command;
@@ -64,13 +64,13 @@ typedef struct{
 	uint32 ImageID;
 	uint32 DataOffset;
 	uint32 DataLength;
-}__attribute__((packed))read_data_packet_t;
+}__attribute__((packed))read_data_packet;
 
 
 typedef struct{
 	uint32 Command;
 	uint32 Length;
-}__attribute__((packed))sahara_header_t;
+}__attribute__((packed))sahara_header;
 
 /***********SHARA COMMAND*****************/
 #define SUCESS_OR_ERROR_STATE 			0x00000000  //Host sets this field based on the Hello packet received; if target protocol matches host and no other errors, a success value is sent.
@@ -129,7 +129,7 @@ int SendHelloPacket();
 int SendDoPacket();
 int SendHelloPacketTest(int emergency_mode);
 int SendResetPacket();
-int GetReadDataPacket(int *emergency_mode, int maxpkt = (1024 * 4));
+int GetReadDataPacket(int *emergency_mode);
 /*------end-------------sahara download protocol-------------------------*/
 
 /*------begin-------------module normal hdlc-------------------------*/
@@ -151,10 +151,7 @@ int ReadSAHARABuffer(int file, unsigned char * lpBuf, int dwToRead);
 //hunter.lv add 
 //retrieve module soft revision
 
-#ifdef FIREHOSE_ENABLE
-int switch_emergency_download();
-int transfer_prog_nand_firehose_file(char * filename);
-#endif
+
 
 #endif /*__SERIALIF_H__*/
 

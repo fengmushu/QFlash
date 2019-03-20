@@ -9,6 +9,7 @@
 #include "quectel_common.h"
 #include "quectel_log.h"
 
+
 #define MAX_TRACE_LENGTH      (256)
 #define MAX_PATH 260
 const char PORT_NAME_PREFIX[] = "/dev/ttyUSB";
@@ -19,12 +20,8 @@ int dump = 0;
 
 static download_context s_QdlContext;
 download_context *QdlContext = &s_QdlContext;
-//int need_check_fw_version;	//whether check fw version with current
-//char current_fw_version[256];
 
 extern "C" int fastboot_main(int argc, char **argv);
-extern "C" int firehose_main_entry(int argc, char **argv);
-
 
 
 int retrieve_diag_port(download_context* ctx_ptr, int auto_detect);
@@ -119,7 +116,7 @@ start_probe_port:
         else
             return 1;
     }
-    dbg_time("Start to open com port: %s\n", pc_comport);
+    printf("Start to open com port: %s\n", pc_comport);
     //g_hCom = (HANDLE) open(pc_comport, O_RDWR | O_NOCTTY);
     g_hCom = open (pc_comport, O_RDWR | O_SYNC);
     if(g_hCom < 0)
@@ -195,23 +192,23 @@ int ReadABuffer(int file, unsigned char * lpBuf, int dwToRead, int timeout)
 	int selectResult = select(file + 1, &rd_set, NULL, NULL, &timeout1);
 	if(0 == selectResult)
 	{
-		dbg_time("Timeout Occured, No response or command came from the target!\n");
+		printf("Timeout Occured, No response or command came from the target!\n");
 		return 0;
 	}
 	if( selectResult < 0)
 	{
-		dbg_time("select returned error : %s\n", strerror(errno));
+		printf("select returned error : %s\n", strerror(errno));
 		return 0;
 	}
 	if(selectResult < 0)
 	{
-		dbg_time("select set failed\n");
+		printf("select set failed\n");
 		return 0;
 	}
 	read_len = read(file, lpBuf, dwToRead);
 	if(0 == read_len)
 	{
-		dbg_time("zero length packet received or hardware connection went off.\n");
+		printf("zero length packet received or hardware connection went off.\n");
 		return 0;
 	}
 	else if( read_len < 0)
@@ -222,7 +219,7 @@ int ReadABuffer(int file, unsigned char * lpBuf, int dwToRead, int timeout)
 			return 0;
 		}else
 		{
-			dbg_time("read file descriptor returned error :%s, error code %d", strerror(errno), read_len);
+			printf("read file descriptor returned error :%s, error code %d", strerror(errno), read_len);
 			return 0;
 		}
 	}
@@ -282,18 +279,18 @@ static int os_ready(download_context *ctx_ptr)
 			}
 		}else
 		{
-			dbg_time("Cannot find Quectel diagnoese and adb port.\n");
+			printf("Cannot find Quectel diagnoese and adb port.\n");
 			return -2;
 		}
     }else
     {
     	if(detect_modem_port(&ctx_ptr->modem_port) == 0)
 		{		
-			dbg_time("Auto detect Quectel modem port = %s\n", ctx_ptr->modem_port);
+			printf("Auto detect Quectel modem port = %s\n", ctx_ptr->modem_port);
 			return 0;
 		}else
 		{
-			dbg_time("Auto detect Quectel modem port failed.\n");
+			printf("Auto detect Quectel modem port failed.\n");
 			return false;
 		}
     }
@@ -319,11 +316,8 @@ static const char* platfrom2str(module_platform_t t)
 }
 
 int qdl_pre_download(download_context *ctx_ptr) {
-	char *product_model = NULL;
-	int ret;
     time_t tm;
-    
-    time(&tm);    
+    time(&tm);
     show_log("Module upgrade tool, %s", ctime(&tm));
 
     if(os_ready(ctx_ptr) != 0)
@@ -340,9 +334,6 @@ int qdl_pre_download(download_context *ctx_ptr) {
     {
     	QFLASH_LOGD("module platform : %s\n", platfrom2str(ctx_ptr->platform));
     }
-
-	ret = get_product_model(&ctx_ptr->prodct_model);
-	QFLASH_LOGD("product model = %s", ctx_ptr->prodct_model);
     
     if (result) {
     	switch(ctx_ptr->update_method)
@@ -354,11 +345,8 @@ int qdl_pre_download(download_context *ctx_ptr) {
     	case 2:
     		result = process_at_fastboot_upgrade(ctx_ptr);
     		break;
-		case 3:
-			result = process_firehose_upgrade(ctx_ptr);
-			break;
     	default:
-    		dbg_time("unknown upgrade method, please contact Quectel\n");
+    		printf("unknown upgrade method, plase contact Quectel\n");
     		break;
     	}
     }
@@ -374,11 +362,11 @@ void qdl_post_download(download_context *pQdlContext, int result)
         closeport();
     if(result==1)
     {
-        dbg_time("Upgrade module successfully, %s\n", ctime(&tm));
+        printf("Upgrade module successfully, %s\n", ctime(&tm));
     }
     else
     {
-        dbg_time("Upgrade module unsuccessfully, %s\n", ctime(&tm));
+        printf("Upgrade module unsuccessfully, %s\n", ctime(&tm));
     }
     ProcessUninit(pQdlContext);
 }
@@ -401,16 +389,12 @@ int main(int argc, char *argv[]) {
 
 	int auto_detect_diag_port = 1;
 	double start_time, end_time;
-	//need_check_fw_version = 0;
 
 	if ((argc > 1) && (!strcmp(argv[1], "fastboot"))) {
 		return fastboot_main(argc - 1, argv + 1);
 	}
-	if ((argc > 1) && (!strcmp(argv[1], "qfirehose"))) {
-		return firehose_main_entry(argc - 1, argv + 1);
-	}
-	/*build V1.4.7*/
-	QFLASH_LOGD("QFlash Version: LTE_QFlash_Linux&Android_V1.4.8\n"); 
+	/*build V1.4.4*/
+	QFLASH_LOGD("QFlash Version: LTE_QFlash_Linux&Android_V1.4.4\n"); 
 	QFLASH_LOGD("Builded: %s %s\n", __DATE__,__TIME__);
 
 	download_context *ctx_ptr = &s_QdlContext;
@@ -420,7 +404,6 @@ int main(int argc, char *argv[]) {
     ctx_ptr->update_method = 0;			//use fastboot method default
     ctx_ptr->md5_check_enable = 0;
     ctx_ptr->platform = platform_unknown;
-    ctx_ptr->prodct_model = NULL;
     g_default_port = 0;
 	int bFile = 0;
 	int opt;
@@ -454,6 +437,8 @@ int main(int argc, char *argv[]) {
                 } else {
                     asprintf(&ctx_ptr->firmware_path, "%s", optarg);           
                 }
+
+                //QFLASH_LOGD("firmware path: %s\n", ctx_ptr->firmware_path);
             } else {
                 QFLASH_LOGD("Error:Folder does not exist\n");
                 return 0;
@@ -472,12 +457,10 @@ int main(int argc, char *argv[]) {
        		method = 1 --> streaming download protocol
        		method = 0 --> fastboot download protocol
        		method = 2 --> fastboot download protocol (at command first)
-       		method = 3 --> firehose download protocol
        		*/
             if(	atoi(optarg) == 0 ||
             	atoi(optarg) == 1 ||
-            	atoi(optarg) == 2 ||
-            	atoi(optarg) == 3
+            	atoi(optarg) == 2
            	)
             {
                 ctx_ptr->update_method = atoi(optarg);

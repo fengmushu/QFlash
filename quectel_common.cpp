@@ -3,6 +3,8 @@
 #include "platform_def.h"
 #include "quectel_log.h"
 
+
+
 #define LOCKMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 static int lockfile(int fd)
 {
@@ -24,22 +26,22 @@ int already_running(const char *filename)
 	fd = open(filename, O_RDWR | O_CREAT, LOCKMODE);
 	if (fd < 0) 
 	{
-        dbg_time("can't open %s: %m\n", filename);
+        printf("can't open %s: %m\n", filename);
         exit(1);
 	}
 
-	/* 鍏堣幏鍙栨枃浠堕攣 */
+	/* 先获取文件锁 */
 	if (lockfile(fd) == -1) {
         if (errno == EACCES || errno == EAGAIN) 
         {
-            dbg_time("file: %s already locked", filename);
+            printf("file: %s already locked", filename);
             close(fd);
             return 1;
         }
-        dbg_time("can't lock %s: %m\n", filename);
+        printf("can't lock %s: %m\n", filename);
         exit(1);
 	}
-	/* 鍐欏叆杩愯瀹炰緥鐨刾id */
+	/* 写入运行实例的pid */
 	ftruncate(fd, 0);
 	sprintf(buf, "%ld", (long)getpid());
 	write(fd, buf, strlen(buf) + 1);
@@ -241,7 +243,7 @@ static int  CreateDir(const   char   *sPathName)
 			{  
 				if(mkdir(DirName,   0755)==-1)  
 				{   
-					dbg_time("mkdir %s\n",DirName);   
+					printf("mkdir %s\n",DirName);   
 					return   -1;   
 				}  
 			}  
@@ -306,7 +308,7 @@ int detect_adb()
 					charsplit(desc,devmajor, 64, "MAJOR=")==-1||
 					charsplit(desc,devminor, 64, "MINOR=")==-1)
 					{
-						dbg_time("[FASTBOOT] Split String Error\n");
+						printf("[FASTBOOT] Split String Error\n");
 						close(fd);
 						closedir(devdir);
 						closedir(busdir);
@@ -319,44 +321,43 @@ int detect_adb()
 
 					if(access(devpath, R_OK | W_OK))
 					{
-						dbg_time("test %s Read/WRITE failed\n", devpath);
+						printf("test %s Read/WRITE failed\n", devpath);
 						if(access(devpath, F_OK))
 						{
-							dbg_time("error: %s is not existent\n", devpath);
+							printf("error: %s is not existent\n", devpath);
 							if(CreateDir(buspath))
 							{
-								dbg_time("Create %s failed!\n", buspath);	
+								printf("Create %s failed!\n", buspath);	
 								close(fd);
 								closedir(devdir);
 								closedir(busdir);
 								return 2;
 							}else
 							{
-								dbg_time("create adb port direcotry OK\n");
+								printf("create adb port direcotry OK\n");
 								if((0 != mknod(devpath,  S_IFCHR|0666, makedev(atoi(devmajor),atoi(devminor)))))
 								{
-									dbg_time("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
+									printf("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
 									close(fd);
 									closedir(devdir);
 									closedir(busdir);
 									return 3;
 								}else
 								{
-									dbg_time("mknod %s OK\n", devpath);
+									printf("mknod %s OK\n", devpath);
 								}
 							}
 						}
 						if(!chmod(devpath, 0666))
 						{
-							dbg_time("chmod %s 0666 success\n", devpath);
+							printf("chmod %s 0666 success\n", devpath);
 						}else
 						{
-							dbg_time("chmod %s 0666 failed\n", devpath);
+							printf("chmod %s 0666 failed\n", devpath);
 						}
 					}else
 					{
-						dbg_time("test %s Read/WRITE OK\n", devpath);
-						
+						printf("test %s Read/WRITE OK\n", devpath);						
 					}					
 
 #if 0
@@ -364,7 +365,7 @@ int detect_adb()
 					{
 						if(CreateDir(buspath)!=0)
 						{
-							dbg_time("[FASTBOOT] Create dir[%s] failed\n",buspath);
+							printf("[FASTBOOT] Create dir[%s] failed\n",buspath);
 							close(fd);
 							closedir(devdir);
 							closedir(busdir);
@@ -375,10 +376,10 @@ int detect_adb()
 
 					if (!access(buspath, R_OK) && access(devpath, F_OK))
 					{												
-						dbg_time("mknod %s, MAJOR = %s, MINOR =%s\n", devpath, devmajor,devminor);
+						printf("mknod %s, MAJOR = %s, MINOR =%s\n", devpath, devmajor,devminor);
 						if((0 != mknod(devpath,  S_IFCHR|0666, makedev(atoi(devmajor),atoi(devminor)))))
 						{
-							dbg_time("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
+							printf("mknod for %s failed, MAJOR = %s, MINOR =%s, errno = %d(%s)\n", devpath, devmajor,devminor, errno, strerror(errno));
 							close(fd);
 							closedir(devdir);
 							closedir(busdir);
@@ -429,7 +430,7 @@ int wait_adb(int timeout)
 	do{
 		if(detect_adb() == 0)
 		{
-			dbg_time("Detect Adb port\n");
+			printf("Detect Adb port\n");
 			return 0;
 		}
 		usleep(1000 * 1000);			// 1 s
@@ -471,7 +472,7 @@ int detect_diag_port_timeout(int timeout)
 		if(detect_diag_port() == 0)
 		{
 			//find diag port
-			dbg_time("Diagnose port connected.\n");
+			printf("Diagnose port connected.\n");
 			return 0;
 		}
 		t--;
@@ -519,7 +520,7 @@ int probe_quectel_speed(enum usb_speed* speed)
 		{		
 			if(strstr(line, "2c7c") != 0)
 			{
-				dbg_time("find Quectel device!\n");
+				printf("find Quectel device!\n");
 				p = line;
 				while(*p != '\n' && p != 0) p++;
 				*p = 0;	
@@ -528,7 +529,7 @@ int probe_quectel_speed(enum usb_speed* speed)
 				if(!fpin3) goto _exit_;
 				if(fgets(line, MAX_PATH - 1, fpin3) != 0)
 				{ // refer to :http://stackoverflow.com/questions/1957589/usb-port-speed-linux
-					dbg_time("speed = %s", line);
+					printf("speed = %s", line);
 					if(strstr(line, "480") != NULL)
 					{
 						*speed = usb_highspeed;
@@ -578,8 +579,7 @@ _exit_:
 void strToLower(char* src)
 {
 	for(char* ptr = src; *ptr; ++ptr)
-	{
-
+	{
 		*ptr = tolower(*ptr);
 	}
 }
@@ -587,8 +587,7 @@ void strToLower(char* src)
 void strToUpper(char* src)
 {
 	for(char* ptr = src; *ptr; ++ptr)
-	{
-
+	{
 		*ptr = toupper(*ptr);
 	}
 }
@@ -604,13 +603,13 @@ void upgrade_process(int writesize,int size,int clear)
 	unsigned int progress = tmp / size;
     if(progress == 100)
     {
-        dbg_time( "progress : %d%% finished \n", progress);        
+        printf( "progress : %d%% finished \n", progress);        
         fflush(stdout);
     }
     else
     {
-        dbg_time( "progress : %d%% finished \r", progress);
-        //dbg_time("process: %d%% finished, All process = %d%%\r", progress, transfer_statistics::getInstance()->get_percent());
+        printf( "progress : %d%% finished \r", progress);
+        //printf("process: %d%% finished, All process = %d%%\r", progress, transfer_statistics::getInstance()->get_percent());
         fflush(stdout);
     }
     
@@ -621,12 +620,12 @@ int show_user_group_name()
 {
 	struct passwd* passwd;
 	passwd = getpwuid(getuid());
-	dbg_time("------------------\n");
-	dbg_time("User:\t %s\n",passwd->pw_name);
+	printf("------------------\n");
+	printf("User:\t %s\n",passwd->pw_name);
 	struct group* group;
 	group = getgrgid(passwd->pw_gid);
-	dbg_time("Group:\t %s\n", group->gr_name);
-	dbg_time("------------------\n");
+	printf("Group:\t %s\n", group->gr_name);
+	printf("------------------\n");
 	return 0;
 }
 
@@ -698,7 +697,7 @@ unsigned long get_file_size(const char* filename)
 	FILE* fp = fopen(filename, "rb");
 	if(fp == NULL)
 	{
-		dbg_time("Open file %s failed.\n", filename);
+		printf("Open file %s failed.\n", filename);
 		return 0;
 	}
 	fseek(fp, SEEK_SET, SEEK_END);
@@ -707,7 +706,7 @@ unsigned long get_file_size(const char* filename)
 	return size;
 }	
 
-/*from firmware file. get vesion which will upgrade*/
+
 module_platform_t get_module_platform(const char* nprg_filename)
 {
 	if(strstr(nprg_filename, "9x06") != NULL)
@@ -719,80 +718,13 @@ module_platform_t get_module_platform(const char* nprg_filename)
 	}else if(strstr(nprg_filename, "9x45") != NULL)
 	{
 		return platform_9x45;
-	}else if(strstr(nprg_filename, "9x65") != NULL)
-	{
-		return platform_9x65;
-	}
-	else
+	}else
 	{
 		return platform_unknown;
 	}
 	return platform_unknown;
 }
 
-/*
-hunter.lv 2018-07-03 new feature
-usb descriptor have product field. which store the module type
-eg:
 
-root@hunter-OptiPlex-780:/sys/bus/usb/devices/2-2# cat product 
-EC25-AF
-root@hunter-OptiPlex-780:/sys/bus/usb/devices/2-2# ls
-2-2:1.0  2-2:1.3     avoid_reset_quirk    bDeviceClass     bmAttributes     bNumConfigurations  configuration  devnum   ep_00      ltm_capable   port     quirks     speed      urbnum
-2-2:1.1  2-2:1.4     bcdDevice            bDeviceProtocol  bMaxPacketSize0  bNumInterfaces      descriptors    devpath  idProduct  manufacturer  power    removable  subsystem  version
-2-2:1.2  authorized  bConfigurationValue  bDeviceSubClass  bMaxPower        busnum              dev            driver   idVendor   maxchild      product  remove     uevent
-root@hunter-OptiPlex-780:/sys/bus/usb/devices/2-2# 
-*/
-int get_product_model(char ** product_model)
-{
-	struct dirent* ent = NULL;
-	DIR* pDir;
-	char dir[255] = "/sys/bus/usb/devices";
-	pDir = opendir(dir);
-	int ret = -1;
-	if(pDir)
-	{
-		while((ent = readdir(pDir)) != NULL)
-		{
-			struct dirent* subent = NULL;
-			DIR *psubDir;
-			char subdir[255];
-			char dev[255];
-			char idVendor[4 + 1] = {0};
-			char product[255 + 1] = {0};
-			char number[10] = {0};
-			int fd = 0;
 
-			char diag_port[32] = "\0";
-
-            snprintf(subdir, sizeof(subdir), "%s/%s/idVendor", dir, ent->d_name);
-            fd = open(subdir, O_RDONLY);
-            if (fd > 0) {
-                read(fd, idVendor, 4);
-                close(fd);
-             }else
-             {
-             	continue;
-             }
-            
-            if (!strncasecmp(idVendor, "05c6", 4) || !strncasecmp(idVendor, "2c7c", 4))
-                ;
-            else
-            	continue;    
-
-            //retrieve product field
-            snprintf(subdir, sizeof(subdir), "%s/%s/product", dir, ent->d_name);
-            fd  = open(subdir, O_RDONLY);
-            if (fd > 0) {
-                read(fd, product, 255);
-                *product_model = strdup(product);
-                close(fd);
-                closedir(pDir);		// close pDir
-                return 0;
-            }            
-		}
-		closedir(pDir);
-	}
-	return -ENODEV;
-}
 

@@ -40,8 +40,5 @@ extern int g_hCom;
 
 
 #define WRITE_PACKET_LENGTH			1024 * 4
-
-void dbg_time (const char *fmt, ...);
-
 #endif /*__PLATFORM_DEF_H__*/
 

@@ -54,7 +54,6 @@ void fb_queue_notice(const char *notice);
 int fb_execute_queue(usb_handle *usb);
 void fb_lqueue_destroy();
 
-void dbg_time (const char *fmt, ...);
 
 /* util stuff */
 void die(const char *fmt, ...);

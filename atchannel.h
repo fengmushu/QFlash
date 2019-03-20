@@ -124,7 +124,7 @@ int logd(const char *fmt, ...);
 #define LOGD logd
 #define LOGE LOGD
 #else
-#define LOGD(fmt, args...) dbg_time(fmt, ##args);
+#define LOGD(fmt, args...) printf(fmt, ##args);
 #define LOGE LOGD
 #endif
 
